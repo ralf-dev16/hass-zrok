@@ -53,12 +53,12 @@ This add-on solves these problems by providing:
 5. Publish to community add-on repository
 
 ### 2.3 Success Criteria
-- \u2705 Add-on installs successfully on HA OS
-- \u2705 Generates working public HTTPS URL
-- \u2705 Survives Home Assistant restarts
-- \u2705 Works on Raspberry Pi and x86 systems
-- \u2705 Basic Auth protection functional
-- \u2705 Clear error messages for misconfigurations
+- ✅ Add-on installs successfully on HA OS
+- ✅ Generates working public HTTPS URL
+- ✅ Survives Home Assistant restarts
+- ✅ Works on Raspberry Pi and x86 systems
+- ✅ Basic Auth protection functional
+- ✅ Clear error messages for misconfigurations
 
 ---
 
@@ -67,41 +67,41 @@ This add-on solves these problems by providing:
 ### 3.1 System Components
 
 ```
-\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510
-\u2502           Home Assistant OS                      \u2502
-\u2502  \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510  \u2502
-\u2502  \u2502     zrok Share Add-on (Docker Container)  \u2502  \u2502
-\u2502  \u2502                                           \u2502  \u2502
-\u2502  \u2502  \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510    \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510  \u2502  \u2502
-\u2502  \u2502  \u2502  run.sh     \u2502\u2500\u2500\u2500\u25b6\u2502  zrok binary    \u2502  \u2502  \u2502
-\u2502  \u2502  \u2502  (wrapper)  \u2502    \u2502  (share public) \u2502  \u2502  \u2502
-\u2502  \u2502  \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518    \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518  \u2502  \u2502
-\u2502  \u2502         \u25b2                     \u2502           \u2502  \u2502
-\u2502  \u2502         \u2502                     \u2502           \u2502  \u2502
-\u2502  \u2502    \u250c\u2500\u2500\u2500\u2500\u2534\u2500\u2500\u2500\u2500\u2500\u2510               \u2502           \u2502  \u2502
-\u2502  \u2502    \u2502config.yaml\u2502              \u2502           \u2502  \u2502
-\u2502  \u2502    \u2502(user conf)\u2502              \u2502           \u2502  \u2502
-\u2502  \u2502    \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518               \u2502           \u2502  \u2502
-\u2502  \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u253c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518  \u2502
-\u2502                                  \u2502              \u2502
-\u2502  \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u25bc\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510  \u2502
-\u2502  \u2502   Home Assistant Core (localhost:8123)    \u2502  \u2502
-\u2502  \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518  \u2502
-\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518
-                    \u2502
-                    \u2502 Encrypted Tunnel
-                    \u25bc
-         \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510
-         \u2502  zrok.io Platform    \u2502
-         \u2502  (OpenZiti Network)  \u2502
-         \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518
-                    \u2502
-                    \u2502 HTTPS
-                    \u25bc
-         \u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510
-         \u2502   End User Browser   \u2502
-         \u2502  (Any Device)        \u2502
-         \u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518
+┌──────────────────────────────────────────────────┐
+│           Home Assistant OS                      │
+│  ┌───────────────────────────────────────────┐  │
+│  │     zrok Share Add-on (Docker Container)  │  │
+│  │                                           │  │
+│  │  ┌─────────────┐    ┌─────────────────┐  │  │
+│  │  │  run.sh     │───▶│  zrok binary    │  │  │
+│  │  │  (wrapper)  │    │  (share public) │  │  │
+│  │  └─────────────┘    └────────┬────────┘  │  │
+│  │         ▲                     │           │  │
+│  │         │                     │           │  │
+│  │    ┌────┴─────┐               │           │  │
+│  │    │config.yaml│              │           │  │
+│  │    │(user conf)│              │           │  │
+│  │    └──────────┘               │           │  │
+│  └──────────────────────────────┼───────────┘  │
+│                                  │              │
+│  ┌──────────────────────────────▼───────────┐  │
+│  │   Home Assistant Core (localhost:8123)    │  │
+│  └───────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────┘
+                    │
+                    │ Encrypted Tunnel
+                    ▼
+         ┌──────────────────────┐
+         │  zrok.io Platform    │
+         │  (OpenZiti Network)  │
+         └──────────┬───────────┘
+                    │
+                    │ HTTPS
+                    ▼
+         ┌──────────────────────┐
+         │   End User Browser   │
+         │  (Any Device)        │
+         └──────────────────────┘
 ```
 
 ### 3.2 Technology Stack
@@ -309,26 +309,26 @@ log_level: string (default: "info")
 
 ```
 ha-addons/
-\u251c\u2500\u2500 .github/
-\u2502   \u2514\u2500\u2500 workflows/
-\u2502       \u251c\u2500\u2500 builder.yaml           # Multi-arch build workflow
-\u2502       \u251c\u2500\u2500 lint.yaml              # Code quality checks
-\u2502       \u2514\u2500\u2500 release.yaml           # Release automation
-\u2502
-\u251c\u2500\u2500 zrok-share/                    # Main add-on directory
-\u2502   \u251c\u2500\u2500 config.yaml                # Add-on manifest
-\u2502   \u251c\u2500\u2500 Dockerfile                 # Container definition
-\u2502   \u251c\u2500\u2500 build.json                 # Build configuration
-\u2502   \u251c\u2500\u2500 run.sh                     # Startup script
-\u2502   \u251c\u2500\u2500 README.md                  # User documentation
-\u2502   \u251c\u2500\u2500 DOCS.md                    # Detailed documentation
-\u2502   \u251c\u2500\u2500 CHANGELOG.md               # Version history
-\u2502   \u251c\u2500\u2500 icon.png                   # Add-on icon (256x256)
-\u2502   \u2514\u2500\u2500 logo.png                   # Repository logo
-\u2502
-\u251c\u2500\u2500 repository.yaml                # Repository metadata
-\u251c\u2500\u2500 README.md                      # Repository overview
-\u2514\u2500\u2500 LICENSE                        # Open source license (Apache 2.0)
+├── .github/
+│   └── workflows/
+│       ├── builder.yaml           # Multi-arch build workflow
+│       ├── lint.yaml              # Code quality checks
+│       └── release.yaml           # Release automation
+│
+├── zrok-share/                    # Main add-on directory
+│   ├── config.yaml                # Add-on manifest
+│   ├── Dockerfile                 # Container definition
+│   ├── build.json                 # Build configuration
+│   ├── run.sh                     # Startup script
+│   ├── README.md                  # User documentation
+│   ├── DOCS.md                    # Detailed documentation
+│   ├── CHANGELOG.md               # Version history
+│   ├── icon.png                   # Add-on icon (256x256)
+│   └── logo.png                   # Repository logo
+│
+├── repository.yaml                # Repository metadata
+├── README.md                      # Repository overview
+└── LICENSE                        # Open source license (Apache 2.0)
 ```
 
 ---
@@ -338,10 +338,10 @@ ha-addons/
 ### Phase 1: MVP (Minimum Viable Product)
 **Timeline:** Week 1-2  
 **Goals:**
-- \u2705 Basic add-on structure
-- \u2705 zrok token configuration
-- \u2705 Public share working
-- \u2705 Manual testing on amd64
+- ✅ Basic add-on structure
+- ✅ zrok token configuration
+- ✅ Public share working
+- ✅ Manual testing on amd64
 
 **Deliverables:**
 - Functional add-on (local install)
@@ -351,10 +351,10 @@ ha-addons/
 ### Phase 2: Enhancement
 **Timeline:** Week 3-4  
 **Goals:**
-- \u2705 Basic Auth implementation
-- \u2705 Auto-restart logic
-- \u2705 Multi-arch builds (GitHub Actions)
-- \u2705 Improved logging
+- ✅ Basic Auth implementation
+- ✅ Auto-restart logic
+- ✅ Multi-arch builds (GitHub Actions)
+- ✅ Improved logging
 
 **Deliverables:**
 - GitHub repository with CI/CD
@@ -364,10 +364,10 @@ ha-addons/
 ### Phase 3: Polish
 **Timeline:** Week 5-6  
 **Goals:**
-- \u2705 Icon and branding
-- \u2705 Advanced configuration options
-- \u2705 Status sensor (optional)
-- \u2705 Testing on multiple platforms
+- ✅ Icon and branding
+- ✅ Advanced configuration options
+- ✅ Status sensor (optional)
+- ✅ Testing on multiple platforms
 
 **Deliverables:**
 - Production-ready add-on
@@ -377,10 +377,10 @@ ha-addons/
 ### Phase 4: Community Release
 **Timeline:** Week 7+  
 **Goals:**
-- \u2705 Publish to community repository
-- \u2705 Gather user feedback
-- \u2705 Bug fixes and improvements
-- \u2705 Feature requests handling
+- ✅ Publish to community repository
+- ✅ Gather user feedback
+- ✅ Bug fixes and improvements
+- ✅ Feature requests handling
 
 **Deliverables:**
 - Public release
@@ -394,9 +394,9 @@ ha-addons/
 ### 8.1 Build Pipeline
 
 **Trigger Events:**
-- Push to `main` branch \u2192 Test build
-- Pull request \u2192 Test build
-- New tag `v*` \u2192 Release build
+- Push to `main` branch → Test build
+- Pull request → Test build
+- New tag `v*` → Release build
 - Manual workflow dispatch
 
 **Build Matrix:**
@@ -477,9 +477,9 @@ architectures:
 - Verify URL still works
 
 **Scenario 4: Error Handling**
-- Start without token \u2192 clear error
-- Invalid token \u2192 clear error
-- Network down \u2192 graceful handling
+- Start without token → clear error
+- Invalid token → clear error
+- Network down → graceful handling
 
 ---
 
