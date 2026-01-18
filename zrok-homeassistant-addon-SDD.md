@@ -124,19 +124,76 @@ This add-on solves these problems by providing:
 
 **Container Pattern:** Single-purpose container
 - One add-on = one zrok share instance
-- Stateless design (configuration via HA)
-- Restart-safe (environment persists)
+- Stateless container design
+- Restart-safe (state persists externally)
 
-**Configuration Pattern:** Declarative YAML
-- User-friendly options in HA UI
-- Schema validation
-- Secure password handling
+**Configuration Pattern:** External configuration storage
+- Configuration managed by Home Assistant (not in container)
+- Mounted at runtime via `/data/options.json`
+- Editable via HA UI even when container is stopped
+- Prevents configuration lock-out scenarios
+
+**Data Persistence Pattern:** External volumes
+- `/data` - Persistent storage for zrok environment
+- `/config` - Read-only access to HA configuration (if needed)
+- Logs via stdout/stderr (collected by HA)
+- No critical data stored inside container
 
 ---
 
-## 4. Functional Requirements
+## 4. Configuration and Data Management
 
-### 4.1 Core Features
+### 4.1 Configuration Storage
+
+**Home Assistant Managed:**
+```yaml
+# Configuration stored by HA in:
+# /data/options.json (mounted into container)
+
+{
+  "zrok_token": "user_token_here",
+  "backend_url": "http://homeassistant:8123",
+  "basic_auth_username": "admin",
+  "basic_auth_password": "secret",
+  "auto_restart": true,
+  "log_level": "info"
+}
+```
+
+**Benefits:**
+- Configuration editable via HA UI at any time
+- Add-on can be stopped to fix misconfigurations
+- No risk of configuration lock-out
+- Automatic backup with HA snapshots
+
+### 4.2 Persistent Data
+
+**zrok Environment Storage:**
+```
+/data/
+├── .zrok/
+│   ├── environment.json    # zrok environment config
+│   ├── identities/         # OpenZiti identities
+│   └── ctrl.yml           # Controller config
+└── share.log              # Optional: Last share info
+```
+
+**Volume Mounts:**
+- `/data` → Persistent across restarts (zrok state)
+- Container filesystem → Ephemeral (no persistent data)
+
+**Recovery Scenario:**
+1. Add-on fails to start due to bad config
+2. User stops add-on in HA UI
+3. User edits configuration in HA UI
+4. User restarts add-on
+5. Add-on reads corrected config from `/data/options.json`
+
+---
+
+## 5. Functional Requirements
+
+### 5.1 Core Features
 
 #### FR-1: Add-on Installation
 - **Priority:** Critical
@@ -189,7 +246,16 @@ This add-on solves these problems by providing:
   - Works on aarch64 (ARM 64-bit)
   - Works on armv7 (Raspberry Pi)
 
-### 4.2 Configuration Options
+#### FR-7: External Configuration
+- **Priority:** Critical
+- **Description:** Configuration stored externally to prevent lock-out
+- **Acceptance Criteria:**
+  - Configuration editable when add-on is stopped
+  - No configuration stored in container
+  - Configuration persists across container rebuilds
+  - Safe recovery from misconfiguration
+
+### 5.2 Configuration Options
 
 ```yaml
 zrok_token: string (required)
@@ -214,7 +280,7 @@ log_level: string (default: "info")
   # Logging verbosity: debug, info, warn, error
 ```
 
-### 4.3 User Workflows
+### 5.3 User Workflows
 
 #### Workflow 1: First-Time Setup
 1. User installs add-on from repository
@@ -237,15 +303,27 @@ log_level: string (default: "info")
 1. User notices connection issues
 2. User checks add-on logs
 3. Logs show clear error message
-4. User fixes configuration
-5. User restarts add-on
-6. Connection restored
+4. User stops add-on (if not already stopped)
+5. User edits configuration via HA UI
+6. User restarts add-on
+7. Connection restored
+
+#### Workflow 4: Recovery from Misconfiguration
+1. Add-on fails to start (bad config)
+2. User cannot access HA remotely
+3. User stops add-on in HA UI
+4. User corrects configuration (token, URL, etc.)
+5. User starts add-on
+6. Add-on reads corrected config from `/data/options.json`
+7. Successfully establishes zrok share
+
+**Note:** Configuration is always editable because it's stored externally by Home Assistant, not inside the container.
 
 ---
 
-## 5. Non-Functional Requirements
+## 6. Non-Functional Requirements
 
-### 5.1 Performance
+### 6.1 Performance
 
 **NFR-1: Startup Time**
 - Add-on starts within 30 seconds
@@ -261,7 +339,7 @@ log_level: string (default: "info")
 - CPU: < 5% average
 - Disk: < 100 MB total
 
-### 5.2 Security
+### 6.2 Security
 
 **NFR-4: Authentication**
 - Support for Basic Auth (RFC 7617)
@@ -278,7 +356,7 @@ log_level: string (default: "info")
 - Optional self-hosted zrok controller
 - Logs contain no sensitive data
 
-### 5.3 Reliability
+### 6.3 Reliability
 
 **NFR-7: Availability**
 - Auto-restart on crash
@@ -290,7 +368,7 @@ log_level: string (default: "info")
 - Compatible with HA versions 2023.x+
 - Forward-compatible with zrok updates
 
-### 5.4 Usability
+### 6.4 Usability
 
 **NFR-9: Documentation**
 - README with setup instructions
@@ -305,7 +383,7 @@ log_level: string (default: "info")
 
 ---
 
-## 6. File Structure
+## 7. File Structure
 
 ```
 ha-addons/
@@ -331,9 +409,54 @@ ha-addons/
 └── LICENSE                        # Open source license (Apache 2.0)
 ```
 
+### 7.1 Container Volume Mounts
+
+**Runtime Volumes (defined in config.yaml):**
+```yaml
+# config.yaml excerpt
+map:
+  - data:rw            # Persistent storage for zrok environment
+  - config:ro          # Optional: HA config access (read-only)
+```
+
+**Volume Purposes:**
+- `/data` - **Read/Write**, persistent across restarts
+  - Stores zrok environment (`~/.zrok`)
+  - Stores identity and credentials
+  - Survives container updates
+- `/config` - **Read-Only** (optional, future use)
+  - Access to Home Assistant configuration
+  - For advanced integrations
+- No persistent data in container filesystem
+
+**Dockerfile Design Principles:**
+```dockerfile
+# Example Dockerfile structure
+FROM ghcr.io/home-assistant/amd64-base:latest
+
+# Install zrok binary
+RUN curl -L https://github.com/openziti/zrok/releases/download/v*/zrok_*_linux_amd64.tar.gz | tar -xz
+
+# Copy startup script
+COPY run.sh /
+RUN chmod +x /run.sh
+
+# NO configuration or data copied into image
+# ALL configuration comes from /data/options.json at runtime
+# ALL persistent data goes to /data volume
+
+CMD ["/run.sh"]
+```
+
+**Key Benefits:**
+- Configuration always accessible via HA UI
+- No data loss on container updates
+- Easy backup (HA snapshots include /data)
+- Recovery from misconfiguration without data loss
+
 ---
 
-## 7. Development Phases
+## 8. Development Phases
 
 ### Phase 1: MVP (Minimum Viable Product)
 **Timeline:** Week 1-2  
@@ -389,9 +512,9 @@ ha-addons/
 
 ---
 
-## 8. GitHub Actions CI/CD
+## 9. GitHub Actions CI/CD
 
-### 8.1 Build Pipeline
+### 9.1 Build Pipeline
 
 **Trigger Events:**
 - Push to `main` branch → Test build
@@ -417,7 +540,7 @@ architectures:
 7. Push to GitHub Container Registry (on release)
 8. Create GitHub Release
 
-### 8.2 Quality Gates
+### 9.2 Quality Gates
 
 **Pre-commit Checks:**
 - YAML syntax validation
@@ -437,25 +560,25 @@ architectures:
 
 ---
 
-## 9. Testing Strategy
+## 10. Testing Strategy
 
-### 9.1 Unit Testing
+### 10.1 Unit Testing
 - Shell script validation (shellcheck)
 - Configuration schema validation
 - Dockerfile best practices (hadolint)
 
-### 9.2 Integration Testing
+### 10.2 Integration Testing
 - Manual testing on developer HA instance
 - Test on multiple architectures
 - Test with/without Basic Auth
 - Test restart scenarios
 
-### 9.3 User Acceptance Testing
+### 10.3 User Acceptance Testing
 - Community beta testing
 - Feedback collection via GitHub issues
 - Documentation clarity testing
 
-### 9.4 Test Scenarios
+### 10.4 Test Scenarios
 
 **Scenario 1: Fresh Installation**
 - Install add-on
@@ -481,11 +604,21 @@ architectures:
 - Invalid token → clear error
 - Network down → graceful handling
 
+**Scenario 5: Configuration Recovery**
+- Configure invalid backend URL
+- Add-on fails to start
+- Stop add-on via HA UI
+- Edit configuration (fix backend URL)
+- Restart add-on
+- Verify add-on starts successfully
+- Verify configuration was read from `/data/options.json`
+- Confirm no data loss in `/data` volume
+
 ---
 
-## 10. Dependencies
+## 11. Dependencies
 
-### 10.1 External Dependencies
+### 11.1 External Dependencies
 
 **zrok:**
 - Source: https://github.com/openziti/zrok
@@ -502,7 +635,7 @@ architectures:
 - Included in HA base images
 - Provides HA-specific shell functions
 
-### 10.2 Service Dependencies
+### 11.2 Service Dependencies
 
 **zrok.io Platform:**
 - Free tier: 10 GB/month transfer
@@ -516,9 +649,9 @@ architectures:
 
 ---
 
-## 11. Security Considerations
+## 12. Security Considerations
 
-### 11.1 Threat Model
+### 12.1 Threat Model
 
 **Threats:**
 1. Unauthorized access to Home Assistant
@@ -532,7 +665,7 @@ architectures:
 3. Token stored securely by HA, not in logs
 4. Rate limiting by zrok platform
 
-### 11.2 Security Best Practices
+### 12.2 Security Best Practices
 
 **Code Security:**
 - No hardcoded credentials
@@ -546,7 +679,7 @@ architectures:
 - Warn about public exposure
 - Suggest private shares for sensitive data
 
-### 11.3 Compliance
+### 12.3 Compliance
 
 **Data Privacy:**
 - GDPR-friendly (no PII collected)
@@ -560,9 +693,9 @@ architectures:
 
 ---
 
-## 12. Documentation Plan
+## 13. Documentation Plan
 
-### 12.1 User Documentation
+### 13.1 User Documentation
 
 **README.md:**
 - Quick start guide
@@ -583,7 +716,7 @@ architectures:
 - New features
 - Bug fixes
 
-### 12.2 Developer Documentation
+### 13.2 Developer Documentation
 
 **Contributing Guide:**
 - Development setup
@@ -599,9 +732,9 @@ architectures:
 
 ---
 
-## 13. Maintenance Plan
+## 14. Maintenance Plan
 
-### 13.1 Update Strategy
+### 14.1 Update Strategy
 
 **Regular Updates:**
 - Monthly dependency checks
@@ -615,7 +748,7 @@ architectures:
 - MINOR: New features
 - PATCH: Bug fixes
 
-### 13.2 Support Channels
+### 14.2 Support Channels
 
 **Primary:**
 - GitHub Issues (bug reports, features)
@@ -632,28 +765,28 @@ architectures:
 
 ---
 
-## 14. Success Metrics
+## 15. Success Metrics
 
-### 14.1 Adoption Metrics
+### 15.1 Adoption Metrics
 - GitHub stars: > 50 (6 months)
 - Installations: > 100 active users
 - Community repository approval
 
-### 14.2 Quality Metrics
+### 15.2 Quality Metrics
 - Bug reports: < 5 open critical bugs
 - Build success rate: > 95%
 - User satisfaction: > 4.0/5.0
 
-### 14.3 Performance Metrics
+### 15.3 Performance Metrics
 - Startup time: < 60 seconds
 - Memory usage: < 50 MB
 - Crash rate: < 1% of startups
 
 ---
 
-## 15. Risk Assessment
+## 16. Risk Assessment
 
-### 15.1 Technical Risks
+### 16.1 Technical Risks
 
 | Risk | Probability | Impact | Mitigation |
 |------|------------|--------|------------|
@@ -662,4 +795,4 @@ architectures:
 | HA compatibility break | Low | High | Test on beta versions |
 | Docker registry issues | Low | Medium | Mirror to Docker Hub |
 
-### 15.2 Operational Ris
+### 16.2 Operational Ris
