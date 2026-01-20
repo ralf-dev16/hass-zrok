@@ -116,4 +116,10 @@ For security concerns, please review our [security documentation](zrok-share/DOC
 
 ---
 
+## Development
+
+This add-on was created with the assistance of AI - specifically **Claude Code** by Anthropic. The implementation, architecture, documentation, and testing were developed through AI-assisted software engineering.
+
+---
+
 **Made with ❤️ for the Home Assistant community**
