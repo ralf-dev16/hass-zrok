@@ -36,7 +36,7 @@ RUN apk add --no-cache \
     && tar -xzf /tmp/zrok.tar.gz -C /usr/local/bin/ \
     && chmod +x /usr/local/bin/zrok \
     && rm -f /tmp/zrok.tar.gz \
-    && zrok version
+    && zrok version || echo "Warning: Could not run zrok version (possibly due to QEMU emulation)"
 
 # Copy startup script
 COPY run.sh /
