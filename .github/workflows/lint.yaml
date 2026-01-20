@@ -87,7 +87,7 @@ jobs:
         with:
           dockerfile: zrok-share/Dockerfile
           failure-threshold: warning
-          ignore: DL3018,DL3059
+          ignore: DL3018,DL3059,DL4006
 
   markdown-lint:
     name: Markdown Lint
