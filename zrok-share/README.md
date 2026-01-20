@@ -187,12 +187,20 @@ Note: Configuration is stored externally by Home Assistant, so it's always edita
 
 Apache License 2.0 - See [LICENSE](../LICENSE) for details
 
-## Credits
+## Credits and Attributions
 
 Built with:
-- [zrok](https://github.com/openziti/zrok) - Zero-trust networking platform
-- [OpenZiti](https://github.com/openziti) - Zero-trust networking foundation
-- [Home Assistant](https://www.home-assistant.io) - Open source home automation
+- **[zrok](https://github.com/openziti/zrok)** - Zero-trust networking platform
+  - License: Apache 2.0
+  - Copyright: 2019 NetFoundry, Inc.
+- **[OpenZiti](https://github.com/openziti)** - Zero-trust networking foundation
+  - License: Apache 2.0
+  - Copyright: NetFoundry, Inc.
+  - OpenZiti was developed and open sourced by NetFoundry, Inc.
+- **[Home Assistant](https://www.home-assistant.io)** - Open source home automation
+  - License: Apache 2.0
+
+For detailed third-party license information, see [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md).
 
 ---
 

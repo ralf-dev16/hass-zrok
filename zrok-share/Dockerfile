@@ -1,6 +1,17 @@
 ARG BUILD_FROM
 FROM $BUILD_FROM
 
+# ==============================================================================
+# zrok Share Add-on for Home Assistant
+#
+# This add-on uses the following open source components:
+# - zrok: Apache License 2.0, Copyright 2019 NetFoundry, Inc.
+# - OpenZiti: Apache License 2.0, Copyright NetFoundry, Inc.
+#
+# For complete license information, see:
+# https://github.com/ralf-dev16/hass-zrok/blob/main/THIRD-PARTY-NOTICES.md
+# ==============================================================================
+
 # Set shell
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 

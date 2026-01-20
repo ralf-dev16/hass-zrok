@@ -84,11 +84,31 @@ Contributions are welcome! Please:
 
 Apache License 2.0 - See [LICENSE](LICENSE) for details
 
-## Credits
+## Credits and Attributions
 
-- [zrok](https://github.com/openziti/zrok) - Zero-trust networking platform
-- [OpenZiti](https://openziti.io) - Zero-trust networking foundation
-- [Home Assistant](https://www.home-assistant.io) - Open source home automation
+This project is built on the following open source technologies:
+
+- **[zrok](https://github.com/openziti/zrok)** - Zero-trust networking platform
+  - License: Apache 2.0
+  - Copyright: 2019 NetFoundry, Inc.
+  - Description: Secure sharing platform built on OpenZiti
+
+- **[OpenZiti](https://openziti.io)** - Zero-trust networking foundation
+  - License: Apache 2.0
+  - Copyright: NetFoundry, Inc.
+  - Description: OpenZiti was developed and open sourced by NetFoundry, Inc.
+
+- **[Home Assistant](https://www.home-assistant.io)** - Open source home automation
+  - License: Apache 2.0
+  - Description: The world's leading open source home automation platform
+
+For detailed third-party license information, see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+
+### Trademarks
+
+- "zrok" and "OpenZiti" are trademarks of NetFoundry, Inc.
+- "Home Assistant" is a trademark of Home Assistant
+- This project is not officially endorsed by NetFoundry, Inc. or Home Assistant
 
 ## Security
 
