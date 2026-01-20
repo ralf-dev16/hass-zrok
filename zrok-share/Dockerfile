@@ -13,8 +13,8 @@ FROM $BUILD_FROM
 # https://github.com/ralf-dev16/hass-zrok/blob/main/THIRD-PARTY-NOTICES.md
 # ==============================================================================
 
-# Set shell with pipefail for proper error handling
-SHELL ["/bin/ash", "-o", "pipefail", "-c"]
+# Set shell (ash doesn't support pipefail, so we use -e for exit on error)
+SHELL ["/bin/ash", "-e", "-c"]
 
 # Install dependencies and zrok
 RUN apk add --no-cache \
