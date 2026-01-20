@@ -601,6 +601,16 @@ Contributions welcome! Please:
 - Consistent with other add-ons
 - Good logging and config handling
 
+### AI-Assisted Development
+
+This add-on was created with the assistance of **Claude Code** by Anthropic, an AI-powered software engineering tool. The implementation, architecture design, documentation, security considerations, and testing strategies were developed through AI-assisted software engineering practices.
+
+This approach allowed for:
+- Rapid prototyping and iteration
+- Comprehensive documentation from the start
+- Security best practices built-in from day one
+- Thorough error handling and edge case consideration
+
 ---
 
 ## Links and Resources

@@ -202,6 +202,10 @@ Built with:
 
 For detailed third-party license information, see [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md).
 
+### Development Note
+
+This add-on was created with the assistance of AI - specifically **Claude Code** by Anthropic. The implementation, architecture, documentation, and testing were developed through AI-assisted software engineering.
+
 ---
 
 **Enjoy secure remote access to your Home Assistant!** 🏠🔒
