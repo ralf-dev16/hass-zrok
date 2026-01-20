@@ -1,0 +1,25 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+README.md
+DOCS.md
+CHANGELOG.md
+
+# Build files
+build.json
+
+# Development files
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test files
+test/
+tests/
+
+# CI/CD
+.github/

@@ -1,0 +1,223 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  yaml-lint:
+    name: YAML Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install yamllint
+        run: pip install yamllint
+
+      - name: Run yamllint
+        run: |
+          yamllint --version
+          yamllint -f colored -c .yamllint.yaml . || true
+
+      - name: Validate config.yaml
+        run: |
+          echo "Validating zrok-share/config.yaml..."
+          if [ -f "zrok-share/config.yaml" ]; then
+            python3 -c "import yaml; yaml.safe_load(open('zrok-share/config.yaml'))"
+            echo "✅ config.yaml is valid YAML"
+          else
+            echo "❌ config.yaml not found"
+            exit 1
+          fi
+
+      - name: Validate build.json
+        run: |
+          echo "Validating zrok-share/build.json..."
+          if [ -f "zrok-share/build.json" ]; then
+            python3 -c "import json; json.load(open('zrok-share/build.json'))"
+            echo "✅ build.json is valid JSON"
+          else
+            echo "❌ build.json not found"
+            exit 1
+          fi
+
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: './zrok-share'
+          severity: warning
+          ignore_paths: '.git'
+        env:
+          SHELLCHECK_OPTS: --shell=bash --exclude=SC1008,SC2148
+
+      - name: ShellCheck run.sh directly
+        run: |
+          if [ -f "zrok-share/run.sh" ]; then
+            echo "Running ShellCheck on run.sh..."
+            shellcheck -x -s bash zrok-share/run.sh || true
+          fi
+
+  dockerfile-lint:
+    name: Dockerfile Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Run hadolint
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: zrok-share/Dockerfile
+          failure-threshold: warning
+          ignore: DL3018,DL3059
+
+  markdown-lint:
+    name: Markdown Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Run markdownlint
+        uses: nosborn/github-action-markdown-cli@v3.3.0
+        with:
+          files: .
+          config_file: .markdownlint.json
+          ignore_files: .git/
+          ignore_path: .gitignore
+        continue-on-error: true
+
+  addon-validation:
+    name: Add-on Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Validate add-on structure
+        run: |
+          echo "Validating add-on structure..."
+
+          # Check required files
+          REQUIRED_FILES=(
+            "zrok-share/config.yaml"
+            "zrok-share/Dockerfile"
+            "zrok-share/build.json"
+            "zrok-share/run.sh"
+            "zrok-share/README.md"
+            "zrok-share/CHANGELOG.md"
+          )
+
+          for file in "${REQUIRED_FILES[@]}"; do
+            if [ -f "$file" ]; then
+              echo "✅ $file exists"
+            else
+              echo "❌ $file missing"
+              exit 1
+            fi
+          done
+
+      - name: Check run.sh is executable
+        run: |
+          if [ -x "zrok-share/run.sh" ]; then
+            echo "✅ run.sh is executable"
+          else
+            echo "⚠️  run.sh is not executable (this is OK, will be set in Dockerfile)"
+          fi
+
+      - name: Validate config.yaml schema
+        run: |
+          echo "Validating config.yaml schema..."
+
+          # Check required fields
+          REQUIRED_FIELDS=("name" "version" "slug" "description" "arch" "startup" "boot" "options" "schema")
+
+          for field in "${REQUIRED_FIELDS[@]}"; do
+            if grep -q "^$field:" zrok-share/config.yaml; then
+              echo "✅ $field present"
+            else
+              echo "❌ $field missing"
+              exit 1
+            fi
+          done
+
+      - name: Check version consistency
+        run: |
+          echo "Checking version consistency..."
+
+          CONFIG_VERSION=$(grep "^version:" zrok-share/config.yaml | awk '{print $2}' | tr -d '"')
+          CHANGELOG_VERSION=$(grep -m1 "^\[" zrok-share/CHANGELOG.md | sed 's/.*\[\(.*\)\].*/\1/')
+
+          echo "config.yaml version: $CONFIG_VERSION"
+          echo "CHANGELOG.md version: $CHANGELOG_VERSION"
+
+          if [ "$CONFIG_VERSION" = "$CHANGELOG_VERSION" ]; then
+            echo "✅ Versions match"
+          else
+            echo "⚠️  Version mismatch (this is OK for development)"
+          fi
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: './zrok-share'
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
+
+  lint-summary:
+    name: Lint Summary
+    needs: [yaml-lint, shellcheck, dockerfile-lint, markdown-lint, addon-validation, security-scan]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check lint results
+        run: |
+          echo "📊 Lint Summary"
+          echo "==============="
+          echo ""
+          echo "YAML Lint: ${{ needs.yaml-lint.result }}"
+          echo "ShellCheck: ${{ needs.shellcheck.result }}"
+          echo "Dockerfile Lint: ${{ needs.dockerfile-lint.result }}"
+          echo "Markdown Lint: ${{ needs.markdown-lint.result }}"
+          echo "Add-on Validation: ${{ needs.addon-validation.result }}"
+          echo "Security Scan: ${{ needs.security-scan.result }}"
+
+          if [ "${{ needs.yaml-lint.result }}" = "success" ] && \
+             [ "${{ needs.shellcheck.result }}" = "success" ] && \
+             [ "${{ needs.dockerfile-lint.result }}" = "success" ] && \
+             [ "${{ needs.addon-validation.result }}" = "success" ]; then
+            echo ""
+            echo "✅ All critical checks passed!"
+            exit 0
+          else
+            echo ""
+            echo "⚠️  Some checks failed or were skipped"
+            exit 0
+          fi

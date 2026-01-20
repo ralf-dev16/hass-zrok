@@ -1,0 +1,32 @@
+name: zrok Share
+version: 0.1.0
+slug: zrok-share
+description: Secure remote access to Home Assistant via zrok zero-trust networking
+url: https://github.com/ralf-dev16/hass-zrok
+arch:
+  - amd64
+  - aarch64
+  - armv7
+init: false
+startup: application
+boot: auto
+options:
+  zrok_token: ""
+  backend_url: "http://homeassistant:8123"
+  basic_auth_username: ""
+  basic_auth_password: ""
+  share_mode: "public"
+  auto_restart: true
+  log_level: "info"
+schema:
+  zrok_token: str
+  backend_url: str
+  basic_auth_username: str?
+  basic_auth_password: password?
+  share_mode: list(public|private|reserved)?
+  auto_restart: bool?
+  log_level: list(debug|info|warn|error)?
+map:
+  - data:rw
+  - config:ro
+image: ghcr.io/ralf-dev16/hass-zrok-{arch}

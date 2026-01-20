@@ -1,0 +1,242 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.1.0)'
+        required: true
+        type: string
+
+jobs:
+  validate:
+    name: Validate release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # Extract version from tag (remove 'v' prefix)
+            VERSION=${GITHUB_REF#refs/tags/v}
+            TAG=${GITHUB_REF#refs/tags/}
+          else
+            # Manual trigger
+            VERSION="${{ github.event.inputs.version }}"
+            TAG="v${VERSION}"
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+          echo "Version: $VERSION"
+          echo "Tag: $TAG"
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ Invalid version format: $VERSION"
+            echo "Expected format: X.Y.Z (e.g., 0.1.0)"
+            exit 1
+          fi
+          echo "✅ Version format valid: $VERSION"
+
+      - name: Check version in config.yaml
+        run: |
+          CONFIG_VERSION=$(grep "^version:" zrok-share/config.yaml | awk '{print $2}' | tr -d '"')
+          RELEASE_VERSION="${{ steps.version.outputs.version }}"
+
+          echo "config.yaml version: $CONFIG_VERSION"
+          echo "Release version: $RELEASE_VERSION"
+
+          if [ "$CONFIG_VERSION" != "$RELEASE_VERSION" ]; then
+            echo "❌ Version mismatch!"
+            echo "Please update config.yaml version to $RELEASE_VERSION"
+            exit 1
+          fi
+          echo "✅ Versions match"
+
+      - name: Check CHANGELOG.md
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          if grep -q "## \[$VERSION\]" zrok-share/CHANGELOG.md; then
+            echo "✅ CHANGELOG.md contains entry for version $VERSION"
+          else
+            echo "⚠️  CHANGELOG.md missing entry for version $VERSION"
+            echo "Consider adding a changelog entry before release"
+          fi
+
+  build:
+    name: Build for release
+    needs: validate
+    uses: ./.github/workflows/builder.yaml
+    secrets: inherit
+
+  create-release:
+    name: Create GitHub Release
+    needs: [validate, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract changelog
+        id: changelog
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+
+          # Extract changelog entry for this version
+          if [ -f "zrok-share/CHANGELOG.md" ]; then
+            # Get content between this version and the next section
+            CHANGELOG=$(awk "/## \[$VERSION\]/,/## \[|^---$/" zrok-share/CHANGELOG.md | \
+                       grep -v "^## \[$VERSION\]" | \
+                       grep -v "^---$" | \
+                       sed '/^$/d' | \
+                       head -n 50)
+
+            if [ -z "$CHANGELOG" ]; then
+              CHANGELOG="Release version $VERSION
+
+See [CHANGELOG.md](zrok-share/CHANGELOG.md) for details."
+            fi
+          else
+            CHANGELOG="Release version $VERSION"
+          fi
+
+          # Save to file for use in release notes
+          echo "$CHANGELOG" > release-notes.md
+
+          echo "Changelog extracted:"
+          cat release-notes.md
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+
+          cat > full-release-notes.md <<EOF
+          # zrok Share Add-on $VERSION
+
+          ## What's Changed
+
+          $(cat release-notes.md)
+
+          ## Installation
+
+          Add this repository to your Home Assistant:
+
+          \`\`\`
+          https://github.com/${{ github.repository }}
+          \`\`\`
+
+          Then install the **zrok Share** add-on from the Add-on Store.
+
+          ## Documentation
+
+          - [README](https://github.com/${{ github.repository }}/blob/${{ needs.validate.outputs.tag }}/zrok-share/README.md)
+          - [Documentation](https://github.com/${{ github.repository }}/blob/${{ needs.validate.outputs.tag }}/zrok-share/DOCS.md)
+          - [Changelog](https://github.com/${{ github.repository }}/blob/${{ needs.validate.outputs.tag }}/zrok-share/CHANGELOG.md)
+
+          ## Docker Images
+
+          Multi-arch images are available at:
+
+          \`\`\`
+          ghcr.io/${{ github.repository_owner }}/hass-zrok:$VERSION
+          \`\`\`
+
+          Supported architectures:
+          - amd64 (x86_64)
+          - aarch64 (ARM 64-bit)
+          - armv7 (ARM 32-bit, Raspberry Pi)
+
+          ## Support
+
+          - [Issues](https://github.com/${{ github.repository }}/issues)
+          - [Discussions](https://github.com/${{ github.repository }}/discussions)
+
+          ---
+
+          **Full Changelog**: https://github.com/${{ github.repository }}/blob/${{ needs.validate.outputs.tag }}/zrok-share/CHANGELOG.md
+          EOF
+
+          echo "Full release notes:"
+          cat full-release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ needs.validate.outputs.tag }}
+          name: zrok Share ${{ needs.validate.outputs.version }}
+          body_path: full-release-notes.md
+          draft: false
+          prerelease: ${{ contains(needs.validate.outputs.version, 'alpha') || contains(needs.validate.outputs.version, 'beta') || contains(needs.validate.outputs.version, 'rc') }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  announce:
+    name: Announce release
+    needs: [validate, create-release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release announcement
+        run: |
+          echo "🎉 Release ${{ needs.validate.outputs.tag }} created successfully!"
+          echo ""
+          echo "📦 Package: zrok Share Add-on"
+          echo "🏷️  Version: ${{ needs.validate.outputs.version }}"
+          echo "🔗 Release: https://github.com/${{ github.repository }}/releases/tag/${{ needs.validate.outputs.tag }}"
+          echo ""
+          echo "✅ Multi-arch Docker images published to:"
+          echo "   ghcr.io/${{ github.repository_owner }}/hass-zrok:${{ needs.validate.outputs.version }}"
+          echo "   ghcr.io/${{ github.repository_owner }}/hass-zrok:latest"
+          echo ""
+          echo "📚 Documentation:"
+          echo "   https://github.com/${{ github.repository }}/blob/${{ needs.validate.outputs.tag }}/zrok-share/README.md"
+
+      - name: Summary
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY <<EOF
+          # 🎉 Release Published
+
+          ## zrok Share Add-on ${{ needs.validate.outputs.version }}
+
+          **Release:** [${{ needs.validate.outputs.tag }}](https://github.com/${{ github.repository }}/releases/tag/${{ needs.validate.outputs.tag }})
+
+          ### Docker Images
+
+          \`\`\`
+          ghcr.io/${{ github.repository_owner }}/hass-zrok:${{ needs.validate.outputs.version }}
+          ghcr.io/${{ github.repository_owner }}/hass-zrok:latest
+          \`\`\`
+
+          ### Architectures
+
+          - ✅ amd64 (x86_64)
+          - ✅ aarch64 (ARM 64-bit)
+          - ✅ armv7 (ARM 32-bit)
+
+          ### Next Steps
+
+          1. Test the release in a Home Assistant instance
+          2. Monitor for issues
+          3. Update documentation if needed
+          4. Consider submitting to Home Assistant Community Add-ons
+
+          EOF
