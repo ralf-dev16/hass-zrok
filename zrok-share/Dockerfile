@@ -1,4 +1,5 @@
 ARG BUILD_FROM
+# hadolint ignore=DL3006
 FROM $BUILD_FROM
 
 # ==============================================================================
@@ -11,6 +12,9 @@ FROM $BUILD_FROM
 # For complete license information, see:
 # https://github.com/ralf-dev16/hass-zrok/blob/main/THIRD-PARTY-NOTICES.md
 # ==============================================================================
+
+# Set shell with pipefail for proper error handling
+SHELL ["/bin/sh", "-o", "pipefail", "-c"]
 
 # Install dependencies and zrok
 RUN apk add --no-cache \
@@ -33,9 +37,6 @@ RUN apk add --no-cache \
     && chmod +x /usr/local/bin/zrok \
     && rm -f /tmp/zrok.tar.gz \
     && zrok version
-
-# Set shell (after bash is installed)
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Copy startup script
 COPY run.sh /
