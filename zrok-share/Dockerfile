@@ -14,7 +14,7 @@ FROM $BUILD_FROM
 # ==============================================================================
 
 # Set shell with pipefail for proper error handling
-SHELL ["/bin/sh", "-o", "pipefail", "-c"]
+SHELL ["/bin/ash", "-o", "pipefail", "-c"]
 
 # Install dependencies and zrok
 RUN apk add --no-cache \
