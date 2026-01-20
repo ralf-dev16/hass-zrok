@@ -12,9 +12,6 @@ FROM $BUILD_FROM
 # https://github.com/ralf-dev16/hass-zrok/blob/main/THIRD-PARTY-NOTICES.md
 # ==============================================================================
 
-# Set shell
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-
 # Install dependencies and zrok
 RUN apk add --no-cache \
     bash \
@@ -36,6 +33,9 @@ RUN apk add --no-cache \
     && chmod +x /usr/local/bin/zrok \
     && rm -f /tmp/zrok.tar.gz \
     && zrok version
+
+# Set shell (after bash is installed)
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Copy startup script
 COPY run.sh /
