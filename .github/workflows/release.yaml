@@ -110,12 +110,9 @@ jobs:
                        head -n 50)
 
             if [ -z "$CHANGELOG" ]; then
-              CHANGELOG=$(cat <<EOF
-Release version $VERSION
+              CHANGELOG="Release version $VERSION
 
-See [CHANGELOG.md](zrok-share/CHANGELOG.md) for details.
-EOF
-)
+          See [CHANGELOG.md](zrok-share/CHANGELOG.md) for details."
             fi
           else
             CHANGELOG="Release version $VERSION"
@@ -131,6 +128,9 @@ EOF
         id: release_notes
         run: |
           VERSION="${{ needs.validate.outputs.version }}"
+          TAG="${{ needs.validate.outputs.tag }}"
+          REPO="${{ github.repository }}"
+          OWNER="${{ github.repository_owner }}"
 
           cat > full-release-notes.md <<EOF
           # zrok Share Add-on $VERSION
@@ -144,23 +144,23 @@ EOF
           Add this repository to your Home Assistant:
 
           \`\`\`
-          https://github.com/${{ github.repository }}
+          https://github.com/$REPO
           \`\`\`
 
           Then install the **zrok Share** add-on from the Add-on Store.
 
           ## Documentation
 
-          - [README](https://github.com/${{ github.repository }}/blob/${{ needs.validate.outputs.tag }}/zrok-share/README.md)
-          - [Documentation](https://github.com/${{ github.repository }}/blob/${{ needs.validate.outputs.tag }}/zrok-share/DOCS.md)
-          - [Changelog](https://github.com/${{ github.repository }}/blob/${{ needs.validate.outputs.tag }}/zrok-share/CHANGELOG.md)
+          - [README](https://github.com/$REPO/blob/$TAG/zrok-share/README.md)
+          - [Documentation](https://github.com/$REPO/blob/$TAG/zrok-share/DOCS.md)
+          - [Changelog](https://github.com/$REPO/blob/$TAG/zrok-share/CHANGELOG.md)
 
           ## Docker Images
 
           Multi-arch images are available at:
 
           \`\`\`
-          ghcr.io/${{ github.repository_owner }}/hass-zrok:$VERSION
+          ghcr.io/$OWNER/hass-zrok:$VERSION
           \`\`\`
 
           Supported architectures:
@@ -170,12 +170,12 @@ EOF
 
           ## Support
 
-          - [Issues](https://github.com/${{ github.repository }}/issues)
-          - [Discussions](https://github.com/${{ github.repository }}/discussions)
+          - [Issues](https://github.com/$REPO/issues)
+          - [Discussions](https://github.com/$REPO/discussions)
 
           ---
 
-          **Full Changelog**: https://github.com/${{ github.repository }}/blob/${{ needs.validate.outputs.tag }}/zrok-share/CHANGELOG.md
+          **Full Changelog**: https://github.com/$REPO/blob/$TAG/zrok-share/CHANGELOG.md
           EOF
 
           echo "Full release notes:"
@@ -215,18 +215,23 @@ EOF
 
       - name: Summary
         run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          TAG="${{ needs.validate.outputs.tag }}"
+          REPO="${{ github.repository }}"
+          OWNER="${{ github.repository_owner }}"
+
           cat >> $GITHUB_STEP_SUMMARY <<EOF
           # 🎉 Release Published
 
-          ## zrok Share Add-on ${{ needs.validate.outputs.version }}
+          ## zrok Share Add-on $VERSION
 
-          **Release:** [${{ needs.validate.outputs.tag }}](https://github.com/${{ github.repository }}/releases/tag/${{ needs.validate.outputs.tag }})
+          **Release:** [$TAG](https://github.com/$REPO/releases/tag/$TAG)
 
           ### Docker Images
 
           \`\`\`
-          ghcr.io/${{ github.repository_owner }}/hass-zrok:${{ needs.validate.outputs.version }}
-          ghcr.io/${{ github.repository_owner }}/hass-zrok:latest
+          ghcr.io/$OWNER/hass-zrok:$VERSION
+          ghcr.io/$OWNER/hass-zrok:latest
           \`\`\`
 
           ### Architectures
