@@ -95,11 +95,27 @@ jobs:
           if git diff --quiet zrok-share/config.yaml; then
             echo "No version changes to commit"
           else
-            echo "Committing version update..."
-            git add zrok-share/config.yaml
-            git commit -m "chore: Update version to $VERSION for release"
-            git push origin HEAD:${{ github.ref_name }}
-            echo "✅ Version update committed and pushed"
+            # Only commit and push when triggered manually (workflow_dispatch)
+            # When triggered by tag push, we're in detached HEAD and can't push to tags
+            if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+              echo "Committing version update..."
+              git add zrok-share/config.yaml
+              git commit -m "chore: Update version to $VERSION for release"
+
+              # Get the current branch name
+              BRANCH=$(git rev-parse --abbrev-ref HEAD)
+              if [ "$BRANCH" = "HEAD" ]; then
+                echo "⚠️  In detached HEAD state, pushing to main branch"
+                BRANCH="main"
+              fi
+
+              git push origin HEAD:$BRANCH
+              echo "✅ Version update committed and pushed to $BRANCH"
+            else
+              echo "⚠️  Triggered by tag push - skipping commit"
+              echo "Version should be updated before creating the tag"
+              echo "Current version in config.yaml will be validated only"
+            fi
           fi
 
       - name: Check CHANGELOG.md
