@@ -131,7 +131,7 @@ jobs:
       - name: Create and push manifest
         run: |
           # Create multi-arch manifest for version tag
-          docker manifest create \
+          docker manifest create --amend \
             ghcr.io/${{ github.repository_owner }}/hass-zrok:${{ needs.init.outputs.version }} \
             ghcr.io/${{ github.repository_owner }}/hass-zrok-amd64:${{ needs.init.outputs.version }} \
             ghcr.io/${{ github.repository_owner }}/hass-zrok-aarch64:${{ needs.init.outputs.version }} \
@@ -140,7 +140,7 @@ jobs:
           docker manifest push ghcr.io/${{ github.repository_owner }}/hass-zrok:${{ needs.init.outputs.version }}
 
           # Create multi-arch manifest for latest tag
-          docker manifest create \
+          docker manifest create --amend \
             ghcr.io/${{ github.repository_owner }}/hass-zrok:latest \
             ghcr.io/${{ github.repository_owner }}/hass-zrok-amd64:latest \
             ghcr.io/${{ github.repository_owner }}/hass-zrok-aarch64:latest \
