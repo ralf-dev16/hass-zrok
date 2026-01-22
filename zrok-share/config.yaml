@@ -1,5 +1,5 @@
 name: zrok Share
-version: 0.1.0
+version: 0.0.4
 slug: zrok-share
 description: Secure remote access to Home Assistant via zrok zero-trust networking
 url: https://github.com/ralf-dev16/hass-zrok
