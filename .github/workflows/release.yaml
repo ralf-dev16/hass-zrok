@@ -110,9 +110,12 @@ jobs:
                        head -n 50)
 
             if [ -z "$CHANGELOG" ]; then
-              CHANGELOG="Release version $VERSION
+              CHANGELOG=$(cat <<EOF
+Release version $VERSION
 
-See [CHANGELOG.md](zrok-share/CHANGELOG.md) for details."
+See [CHANGELOG.md](zrok-share/CHANGELOG.md) for details.
+EOF
+)
             fi
           else
             CHANGELOG="Release version $VERSION"
