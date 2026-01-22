@@ -81,6 +81,9 @@ jobs:
     name: Build for release
     needs: validate
     uses: ./.github/workflows/builder.yaml
+    permissions:
+      contents: read
+      packages: write
     secrets: inherit
 
   create-release:
