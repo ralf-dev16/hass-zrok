@@ -15,12 +15,17 @@ jobs:
   validate:
     name: Validate release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       version: ${{ steps.version.outputs.version }}
       tag: ${{ steps.version.outputs.tag }}
     steps:
       - name: Checkout the repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
 
       - name: Determine version
         id: version
@@ -51,20 +56,51 @@ jobs:
           fi
           echo "✅ Version format valid: $VERSION"
 
-      - name: Check version in config.yaml
+      - name: Update version in config.yaml
         run: |
-          CONFIG_VERSION=$(grep "^version:" zrok-share/config.yaml | awk '{print $2}' | tr -d '"')
-          RELEASE_VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${{ steps.version.outputs.version }}"
+          CONFIG_FILE="zrok-share/config.yaml"
 
-          echo "config.yaml version: $CONFIG_VERSION"
-          echo "Release version: $RELEASE_VERSION"
+          # Get current version from config.yaml
+          CURRENT_VERSION=$(grep "^version:" "$CONFIG_FILE" | awk '{print $2}' | tr -d '"')
 
-          if [ "$CONFIG_VERSION" != "$RELEASE_VERSION" ]; then
-            echo "❌ Version mismatch!"
-            echo "Please update config.yaml version to $RELEASE_VERSION"
-            exit 1
+          echo "Current version in config.yaml: $CURRENT_VERSION"
+          echo "Target version: $VERSION"
+
+          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+            echo "Updating config.yaml version to $VERSION..."
+            sed -i "s/^version: .*/version: $VERSION/" "$CONFIG_FILE"
+
+            # Verify the change
+            NEW_VERSION=$(grep "^version:" "$CONFIG_FILE" | awk '{print $2}' | tr -d '"')
+            if [ "$NEW_VERSION" = "$VERSION" ]; then
+              echo "✅ Version updated successfully"
+            else
+              echo "❌ Failed to update version"
+              exit 1
+            fi
+          else
+            echo "✅ Version already matches"
           fi
-          echo "✅ Versions match"
+
+      - name: Commit version update
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Check if there are changes
+          if git diff --quiet zrok-share/config.yaml; then
+            echo "No version changes to commit"
+          else
+            echo "Committing version update..."
+            git add zrok-share/config.yaml
+            git commit -m "chore: Update version to $VERSION for release"
+            git push origin HEAD:${{ github.ref_name }}
+            echo "✅ Version update committed and pushed"
+          fi
 
       - name: Check CHANGELOG.md
         run: |
