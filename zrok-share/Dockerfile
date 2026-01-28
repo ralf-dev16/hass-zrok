@@ -21,11 +21,14 @@ ENV ADDON_VERSION=${BUILD_VERSION:-unknown}
 SHELL ["/bin/ash", "-e", "-c"]
 
 # Install dependencies and zrok
+# Note: libc6-compat is required because zrok binaries are built with glibc,
+# but Alpine uses musl libc. Without it, you get "required file not found" errors.
 RUN apk add --no-cache \
     bash \
     curl \
     jq \
     ca-certificates \
+    libc6-compat \
     && ARCH="$(uname -m)" \
     && case "$ARCH" in \
         x86_64) ZROK_ARCH="amd64" ;; \
