@@ -13,6 +13,7 @@ set -e
 CONFIG_PATH=/data/options.json
 ZROK_HOME=/data/.zrok
 export HOME=/data
+export ZROK_ROOT="$ZROK_HOME"
 
 # Get version from environment (set during build) or fallback
 ADDON_VERSION="${ADDON_VERSION:-unknown}"
