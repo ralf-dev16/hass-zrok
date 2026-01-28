@@ -69,7 +69,7 @@ if [ ! -f "$ZROK_HOME/environment.json" ]; then
     bashio::log.info "Enabling zrok for the first time..."
     bashio::log.info "This may take a few moments..."
 
-    if ! zrok enable "$ZROK_TOKEN" 2>&1 | while IFS= read -r line; do
+    if ! zrok enable --headless "$ZROK_TOKEN" 2>&1 | while IFS= read -r line; do
         bashio::log.info "$line"
     done; then
         bashio::log.fatal "Failed to enable zrok!"
@@ -84,11 +84,11 @@ else
 fi
 
 # Verify zrok status
-if ! zrok status &>/dev/null; then
+if ! zrok status --headless &>/dev/null; then
     bashio::log.warning "zrok environment appears invalid, re-enabling..."
     rm -f "$ZROK_HOME/environment.json"
 
-    if ! zrok enable "$ZROK_TOKEN" 2>&1 | while IFS= read -r line; do
+    if ! zrok enable --headless "$ZROK_TOKEN" 2>&1 | while IFS= read -r line; do
         bashio::log.info "$line"
     done; then
         bashio::log.fatal "Failed to re-enable zrok!"
@@ -100,7 +100,7 @@ fi
 # Build zrok share command
 # ------------------------------------------------------------------------------
 
-ZROK_CMD="zrok share public"
+ZROK_CMD="zrok share public --headless"
 
 # Add backend URL
 ZROK_CMD="$ZROK_CMD $BACKEND_URL"
@@ -157,11 +157,11 @@ while true; do
             sleep "$WAIT_TIME"
 
             # Check if environment is still valid
-            if ! zrok status &>/dev/null; then
+            if ! zrok status --headless &>/dev/null; then
                 bashio::log.warning "zrok environment lost, re-enabling..."
                 rm -f "$ZROK_HOME/environment.json"
 
-                if ! zrok enable "$ZROK_TOKEN" 2>&1 | while IFS= read -r line; do
+                if ! zrok enable --headless "$ZROK_TOKEN" 2>&1 | while IFS= read -r line; do
                     bashio::log.info "$line"
                 done; then
                     bashio::log.error "Failed to re-enable zrok, will retry..."
