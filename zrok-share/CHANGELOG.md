@@ -5,6 +5,12 @@ All notable changes to this add-on will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.16] - 2026-01-28
+
+### Fixed
+- Export ZROK_ROOT environment variable to ensure zrok stores its environment in the persistent /data/.zrok directory
+- This fixes the 401 Unauthorized error on container restart when zrok tried to re-enable with an already-used token
+
 ## [0.1.0] - 2026-01-18
 
 ### Added
