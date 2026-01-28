@@ -65,34 +65,91 @@ bashio::log.info "Share mode: $SHARE_MODE"
 # Create zrok home directory if it doesn't exist
 mkdir -p "$ZROK_HOME"
 
-# Check if zrok is already enabled
-if [ ! -f "$ZROK_HOME/environment.json" ]; then
-    bashio::log.info "Enabling zrok for the first time..."
+# Function to enable zrok with better error handling
+enable_zrok() {
+    local output
+    local exit_code
+
+    bashio::log.info "Enabling zrok..."
     bashio::log.info "This may take a few moments..."
 
-    if ! zrok enable --headless "$ZROK_TOKEN" 2>&1 | while IFS= read -r line; do
-        bashio::log.info "$line"
-    done; then
-        bashio::log.fatal "Failed to enable zrok!"
-        bashio::log.fatal "Please check your token and try again."
-        bashio::log.fatal "Get a new token from: https://zrok.io"
-        exit 1
+    # Capture output and exit code separately
+    output=$(zrok enable --headless "$ZROK_TOKEN" 2>&1) || exit_code=$?
+
+    # Log each line of output
+    while IFS= read -r line; do
+        [ -n "$line" ] && bashio::log.info "$line"
+    done <<< "$output"
+
+    # Check for 401 error (token already used)
+    if echo "$output" | grep -q "401.*enableUnauthorized\|enableUnauthorized.*401"; then
+        bashio::log.fatal "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        bashio::log.fatal "TOKEN ALREADY USED"
+        bashio::log.fatal "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        bashio::log.fatal "This zrok token has already been used to create an environment."
+        bashio::log.fatal ""
+        bashio::log.fatal "To fix this, you have two options:"
+        bashio::log.fatal ""
+        bashio::log.fatal "Option 1: Delete the old environment"
+        bashio::log.fatal "  1. Go to https://api-v1.zrok.io"
+        bashio::log.fatal "  2. Log in to your account"
+        bashio::log.fatal "  3. Delete the old environment"
+        bashio::log.fatal "  4. Request a new invite token"
+        bashio::log.fatal "  5. Update the token in the add-on configuration"
+        bashio::log.fatal ""
+        bashio::log.fatal "Option 2: Get a new token"
+        bashio::log.fatal "  1. Go to https://zrok.io"
+        bashio::log.fatal "  2. Request a new invite token"
+        bashio::log.fatal "  3. Update the token in the add-on configuration"
+        bashio::log.fatal "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        return 1
     fi
 
-    bashio::log.info "zrok enabled successfully!"
+    # Check if enable succeeded
+    if [ -n "$exit_code" ] && [ "$exit_code" -ne 0 ]; then
+        bashio::log.fatal "Failed to enable zrok! (exit code: $exit_code)"
+        bashio::log.fatal "Please check your token and try again."
+        bashio::log.fatal "Get a new token from: https://zrok.io"
+        return 1
+    fi
+
+    # Verify environment.json was created and sync to disk
+    if [ -f "$ZROK_HOME/environment.json" ]; then
+        sync
+        bashio::log.info "zrok enabled successfully!"
+        bashio::log.debug "Environment file saved to: $ZROK_HOME/environment.json"
+        return 0
+    else
+        bashio::log.error "zrok enable appeared to succeed but environment.json was not created"
+        bashio::log.error "This is unexpected - please report this issue"
+        return 1
+    fi
+}
+
+# Check if zrok is already enabled
+if [ ! -f "$ZROK_HOME/environment.json" ]; then
+    bashio::log.info "No existing zrok environment found."
+    if ! enable_zrok; then
+        exit 1
+    fi
 else
     bashio::log.info "Using existing zrok environment"
+    bashio::log.debug "Environment file: $ZROK_HOME/environment.json"
 fi
 
 # Verify zrok status
 if ! zrok status --headless &>/dev/null; then
-    bashio::log.warning "zrok environment appears invalid, re-enabling..."
+    bashio::log.warning "zrok environment appears invalid, attempting to re-enable..."
+
+    # First, try to disable cleanly (this may fail but that's okay)
+    bashio::log.debug "Attempting to disable old environment..."
+    zrok disable --headless 2>/dev/null || true
+
+    # Remove local environment file
     rm -f "$ZROK_HOME/environment.json"
 
-    if ! zrok enable --headless "$ZROK_TOKEN" 2>&1 | while IFS= read -r line; do
-        bashio::log.info "$line"
-    done; then
-        bashio::log.fatal "Failed to re-enable zrok!"
+    # Try to enable again
+    if ! enable_zrok; then
         exit 1
     fi
 fi
@@ -159,12 +216,13 @@ while true; do
 
             # Check if environment is still valid
             if ! zrok status --headless &>/dev/null; then
-                bashio::log.warning "zrok environment lost, re-enabling..."
+                bashio::log.warning "zrok environment lost, attempting to re-enable..."
+
+                # Try to disable cleanly first
+                zrok disable --headless 2>/dev/null || true
                 rm -f "$ZROK_HOME/environment.json"
 
-                if ! zrok enable --headless "$ZROK_TOKEN" 2>&1 | while IFS= read -r line; do
-                    bashio::log.info "$line"
-                done; then
+                if ! enable_zrok; then
                     bashio::log.error "Failed to re-enable zrok, will retry..."
                     continue
                 fi
