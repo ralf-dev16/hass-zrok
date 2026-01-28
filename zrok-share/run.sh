@@ -68,7 +68,7 @@ mkdir -p "$ZROK_HOME"
 # Function to enable zrok with better error handling
 enable_zrok() {
     local output
-    local exit_code
+    local exit_code=0
 
     bashio::log.info "Enabling zrok..."
     bashio::log.info "This may take a few moments..."
