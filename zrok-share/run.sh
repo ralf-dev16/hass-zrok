@@ -14,16 +14,19 @@ CONFIG_PATH=/data/options.json
 ZROK_HOME=/data/.zrok
 export HOME=/data
 
-bashio::log.info "Starting zrok Share Add-on..."
+# Get version from environment (set during build) or fallback
+ADDON_VERSION="${ADDON_VERSION:-unknown}"
 
-# Read configuration
-ZROK_TOKEN=$(bashio::config 'zrok_token')
-BACKEND_URL=$(bashio::config 'backend_url')
-BASIC_AUTH_USERNAME=$(bashio::config 'basic_auth_username')
-BASIC_AUTH_PASSWORD=$(bashio::config 'basic_auth_password')
-SHARE_MODE=$(bashio::config 'share_mode')
-AUTO_RESTART=$(bashio::config 'auto_restart')
-LOG_LEVEL=$(bashio::config 'log_level')
+bashio::log.info "Starting zrok Share Add-on v${ADDON_VERSION}..."
+
+# Read configuration directly from options.json using jq (no API dependency)
+ZROK_TOKEN=$(jq -r '.zrok_token // empty' "$CONFIG_PATH")
+BACKEND_URL=$(jq -r '.backend_url // empty' "$CONFIG_PATH")
+BASIC_AUTH_USERNAME=$(jq -r '.basic_auth_username // empty' "$CONFIG_PATH")
+BASIC_AUTH_PASSWORD=$(jq -r '.basic_auth_password // empty' "$CONFIG_PATH")
+SHARE_MODE=$(jq -r '.share_mode // "public"' "$CONFIG_PATH")
+AUTO_RESTART=$(jq -r '.auto_restart // true' "$CONFIG_PATH")
+LOG_LEVEL=$(jq -r '.log_level // "info"' "$CONFIG_PATH")
 
 # Set log level
 case "$LOG_LEVEL" in
@@ -39,14 +42,14 @@ bashio::log.debug "Configuration loaded from $CONFIG_PATH"
 # Validation
 # ------------------------------------------------------------------------------
 
-if bashio::var.is_empty "$ZROK_TOKEN"; then
+if [ -z "$ZROK_TOKEN" ]; then
     bashio::log.fatal "No zrok token configured!"
     bashio::log.fatal "Please configure your zrok invitation token in the add-on settings."
     bashio::log.fatal "Get your token from: https://zrok.io"
     exit 1
 fi
 
-if bashio::var.is_empty "$BACKEND_URL"; then
+if [ -z "$BACKEND_URL" ]; then
     bashio::log.fatal "No backend URL configured!"
     exit 1
 fi
@@ -103,7 +106,7 @@ ZROK_CMD="zrok share public"
 ZROK_CMD="$ZROK_CMD $BACKEND_URL"
 
 # Add Basic Auth if configured
-if bashio::var.has_value "$BASIC_AUTH_USERNAME" && bashio::var.has_value "$BASIC_AUTH_PASSWORD"; then
+if [ -n "$BASIC_AUTH_USERNAME" ] && [ -n "$BASIC_AUTH_PASSWORD" ]; then
     bashio::log.info "Basic Authentication enabled for user: $BASIC_AUTH_USERNAME"
     ZROK_CMD="$ZROK_CMD --basic-auth $BASIC_AUTH_USERNAME:$BASIC_AUTH_PASSWORD"
 else

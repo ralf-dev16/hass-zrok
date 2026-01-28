@@ -1,5 +1,5 @@
 name: zrok Share
-version: 0.0.7
+version: 0.0.8
 slug: zrok-share
 description: Secure remote access to Home Assistant via zrok zero-trust networking
 url: https://github.com/ralf-dev16/hass-zrok
@@ -11,7 +11,7 @@ init: false
 startup: application
 boot: auto
 hassio_api: true
-hassio_role: admin
+hassio_role: default
 homeassistant_api: true
 auth_api: true
 options:

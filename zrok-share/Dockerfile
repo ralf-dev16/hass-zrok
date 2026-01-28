@@ -2,6 +2,10 @@ ARG BUILD_FROM
 # hadolint ignore=DL3006
 FROM $BUILD_FROM
 
+# Build arguments for version info
+ARG BUILD_VERSION
+ENV ADDON_VERSION=${BUILD_VERSION:-unknown}
+
 # ==============================================================================
 # zrok Share Add-on for Home Assistant
 #
