@@ -17,19 +17,19 @@ ENV ADDON_VERSION=${BUILD_VERSION:-unknown}
 # https://github.com/ralf-dev16/hass-zrok/blob/main/THIRD-PARTY-NOTICES.md
 # ==============================================================================
 
-# Set shell (ash doesn't support pipefail, so we use -e for exit on error)
-SHELL ["/bin/ash", "-e", "-c"]
+# Set shell with pipefail for better error handling
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Install dependencies and zrok
-# Note: gcompat provides glibc compatibility for Alpine's musl libc.
-# This is required because zrok binaries are built with glibc.
-# gcompat is more complete than libc6-compat and supports newer symbols like fcntl64.
-RUN apk add --no-cache \
-    bash \
+# Note: Using Debian-based images which have native glibc support.
+# This resolves compatibility issues with zrok binaries (fcntl64 symbol).
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
     curl \
     jq \
     ca-certificates \
-    gcompat \
+    && rm -rf /var/lib/apt/lists/* \
     && ARCH="$(uname -m)" \
     && case "$ARCH" in \
         x86_64) ZROK_ARCH="amd64" ;; \
