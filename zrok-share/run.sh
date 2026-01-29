@@ -137,21 +137,52 @@ else
     bashio::log.debug "Environment file: $ZROK_HOME/environment.json"
 fi
 
-# Verify zrok status
-if ! zrok status --headless &>/dev/null; then
-    bashio::log.warning "zrok environment appears invalid, attempting to re-enable..."
+# Verify zrok status with retries (network may be temporarily unavailable)
+verify_zrok_status() {
+    local max_retries=5
+    local retry_delay=3
+    local attempt=1
 
-    # First, try to disable cleanly (this may fail but that's okay)
-    bashio::log.debug "Attempting to disable old environment..."
-    zrok disable --headless 2>/dev/null || true
+    while [ $attempt -le $max_retries ]; do
+        if zrok status --headless &>/dev/null; then
+            return 0
+        fi
 
-    # Remove local environment file
+        if [ $attempt -lt $max_retries ]; then
+            bashio::log.debug "zrok status check failed (attempt $attempt/$max_retries), retrying in ${retry_delay}s..."
+            sleep $retry_delay
+        fi
+        attempt=$((attempt + 1))
+    done
+
+    return 1
+}
+
+if ! verify_zrok_status; then
+    bashio::log.error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    bashio::log.error "ZROK ENVIRONMENT INVALID"
+    bashio::log.error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    bashio::log.error "The local zrok environment could not be validated with the server."
+    bashio::log.error ""
+    bashio::log.error "This can happen when:"
+    bashio::log.error "  - The environment was deleted on the zrok server"
+    bashio::log.error "  - There is a network connectivity issue"
+    bashio::log.error "  - The zrok service is temporarily unavailable"
+    bashio::log.error ""
+    bashio::log.error "To fix this:"
+    bashio::log.error "  1. Go to https://api-v1.zrok.io and log in"
+    bashio::log.error "  2. Delete any old environments"
+    bashio::log.error "  3. Request a NEW invite token (old tokens cannot be reused)"
+    bashio::log.error "  4. Update the token in the add-on configuration"
+    bashio::log.error "  5. Restart the add-on"
+    bashio::log.error ""
+    bashio::log.error "If you believe this is a temporary network issue, try restarting"
+    bashio::log.error "the add-on in a few minutes."
+    bashio::log.error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+    # Remove local environment file so user can reconfigure with new token
     rm -f "$ZROK_HOME/environment.json"
-
-    # Try to enable again
-    if ! enable_zrok; then
-        exit 1
-    fi
+    exit 1
 fi
 
 # ------------------------------------------------------------------------------
@@ -214,18 +245,14 @@ while true; do
             bashio::log.warning "Auto-restart enabled, waiting ${WAIT_TIME}s before retry (attempt $RETRY_COUNT)..."
             sleep "$WAIT_TIME"
 
-            # Check if environment is still valid
-            if ! zrok status --headless &>/dev/null; then
-                bashio::log.warning "zrok environment lost, attempting to re-enable..."
-
-                # Try to disable cleanly first
-                zrok disable --headless 2>/dev/null || true
+            # Check if environment is still valid (with retries for temporary network issues)
+            if ! verify_zrok_status; then
+                bashio::log.error "zrok environment is no longer valid."
+                bashio::log.error "The environment may have been deleted on the server or there is a persistent network issue."
+                bashio::log.error "Please check your zrok account at https://api-v1.zrok.io and configure a new token if needed."
+                # Remove invalid environment file
                 rm -f "$ZROK_HOME/environment.json"
-
-                if ! enable_zrok; then
-                    bashio::log.error "Failed to re-enable zrok, will retry..."
-                    continue
-                fi
+                exit 1
             fi
 
             bashio::log.info "Restarting zrok share..."
