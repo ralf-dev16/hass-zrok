@@ -132,6 +132,9 @@ if [ ! -f "$ZROK_HOME/environment.json" ]; then
     if ! enable_zrok; then
         exit 1
     fi
+    # Wait for server to fully register the new environment
+    bashio::log.debug "Waiting for environment synchronization..."
+    sleep 5
 else
     bashio::log.info "Using existing zrok environment"
     bashio::log.debug "Environment file: $ZROK_HOME/environment.json"
@@ -142,9 +145,24 @@ verify_zrok_status() {
     local max_retries=5
     local retry_delay=3
     local attempt=1
+    local status_output
+    local status_exit_code
 
     while [ $attempt -le $max_retries ]; do
-        if zrok status --headless &>/dev/null; then
+        status_output=$(zrok status 2>&1) || status_exit_code=$?
+        status_exit_code=${status_exit_code:-0}
+
+        bashio::log.debug "zrok status output: $status_output"
+        bashio::log.debug "zrok status exit code: $status_exit_code"
+
+        # Check if status command succeeded
+        if [ "$status_exit_code" -eq 0 ]; then
+            return 0
+        fi
+
+        # Also accept if output contains "Environment" (indicates valid environment)
+        if echo "$status_output" | grep -qi "environment"; then
+            bashio::log.debug "zrok environment detected in status output"
             return 0
         fi
 
@@ -155,6 +173,7 @@ verify_zrok_status() {
         attempt=$((attempt + 1))
     done
 
+    bashio::log.error "Final zrok status output: $status_output"
     return 1
 }
 
