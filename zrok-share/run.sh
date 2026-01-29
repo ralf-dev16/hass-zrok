@@ -126,20 +126,6 @@ enable_zrok() {
     fi
 }
 
-# Check if zrok is already enabled
-if [ ! -f "$ZROK_HOME/environment.json" ]; then
-    bashio::log.info "No existing zrok environment found."
-    if ! enable_zrok; then
-        exit 1
-    fi
-    # Wait for server to fully register the new environment
-    bashio::log.debug "Waiting for environment synchronization..."
-    sleep 5
-else
-    bashio::log.info "Using existing zrok environment"
-    bashio::log.debug "Environment file: $ZROK_HOME/environment.json"
-fi
-
 # Verify zrok status with retries (network may be temporarily unavailable)
 verify_zrok_status() {
     local max_retries=5
@@ -177,7 +163,24 @@ verify_zrok_status() {
     return 1
 }
 
-if ! verify_zrok_status; then
+# Track if we just enabled zrok (skip status check if so - we know it's valid)
+FRESH_ENABLE=false
+
+# Check if zrok is already enabled
+if [ ! -f "$ZROK_HOME/environment.json" ]; then
+    bashio::log.info "No existing zrok environment found."
+    if ! enable_zrok; then
+        exit 1
+    fi
+    FRESH_ENABLE=true
+    bashio::log.info "Environment freshly enabled - skipping status validation"
+else
+    bashio::log.info "Using existing zrok environment"
+    bashio::log.debug "Environment file: $ZROK_HOME/environment.json"
+fi
+
+# Only verify status for existing environments (not freshly enabled ones)
+if [ "$FRESH_ENABLE" = "false" ] && ! verify_zrok_status; then
     bashio::log.error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     bashio::log.error "ZROK ENVIRONMENT INVALID"
     bashio::log.error "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
